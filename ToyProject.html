@@ -1,0 +1,1259 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TUC: Tau Ceti-B2 Countdown</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #eef5ff;
+      --muted: #9db1c8;
+      --panel: rgba(10, 18, 30, 0.78);
+      --line: rgba(150, 190, 230, 0.26);
+      --cyan: #50d7ff;
+      --amber: #ffba4a;
+      --red: #ff4b5c;
+      --green: #71ef9b;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 15% 10%, rgba(80, 215, 255, 0.16), transparent 26rem),
+        radial-gradient(circle at 85% 70%, rgba(255, 186, 74, 0.10), transparent 24rem),
+        linear-gradient(145deg, #08111e 0%, #0b1627 52%, #111722 100%);
+      overflow-x: hidden;
+    }
+
+    .stars {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        radial-gradient(circle, rgba(255,255,255,.65) 0 1px, transparent 1.6px),
+        radial-gradient(circle, rgba(97,216,255,.55) 0 1px, transparent 1.4px);
+      background-position: 0 0, 50px 90px;
+      background-size: 180px 160px, 260px 220px;
+      opacity: .24;
+    }
+
+    main {
+      width: min(1180px, calc(100vw - 28px));
+      margin: 0 auto;
+      padding: 22px 0 40px;
+      position: relative;
+    }
+
+    header {
+      display: grid;
+      grid-template-columns: 1.3fr .7fr;
+      gap: 18px;
+      align-items: end;
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2rem, 5vw, 4.6rem);
+      line-height: .95;
+      letter-spacing: 0;
+    }
+
+    .kicker {
+      color: var(--cyan);
+      font-weight: 700;
+      margin: 0 0 8px;
+      text-transform: uppercase;
+      font-size: .86rem;
+    }
+
+    .intro {
+      margin: 10px 0 0;
+      color: #c8d7e8;
+      max-width: 760px;
+      line-height: 1.55;
+      font-size: 1rem;
+    }
+
+    .status-panel {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      padding: 14px;
+      border-radius: 8px;
+      display: grid;
+      gap: 8px;
+      box-shadow: 0 18px 60px rgba(0,0,0,.28);
+    }
+
+    .status-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+      font-size: .9rem;
+    }
+
+    .status-row b { color: var(--ink); font-weight: 700; }
+
+    .shell {
+      border: 1px solid var(--line);
+      background: rgba(5, 12, 22, .72);
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 22px 80px rgba(0,0,0,.36);
+    }
+
+    .toolbar {
+      min-height: 46px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 9px 12px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(90deg, rgba(19, 34, 54, .95), rgba(14, 25, 40, .82));
+    }
+
+    .hud {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      font-size: .92rem;
+      color: #dbe8f6;
+    }
+
+    .pill {
+      min-width: 86px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      border: 1px solid rgba(255,255,255,.15);
+      padding: 6px 9px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.06);
+      white-space: nowrap;
+    }
+
+    .controls {
+      display: flex;
+      gap: 7px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    button {
+      border: 1px solid rgba(255,255,255,.18);
+      background: rgba(80, 215, 255, .12);
+      color: var(--ink);
+      border-radius: 7px;
+      padding: 7px 10px;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    button:hover { background: rgba(80, 215, 255, .22); }
+
+    canvas {
+      display: block;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #07111d;
+      image-rendering: pixelated;
+    }
+
+    .message {
+      min-height: 82px;
+      border-top: 1px solid var(--line);
+      background: rgba(7, 15, 26, .94);
+      padding: 13px 15px;
+      display: grid;
+      grid-template-columns: 130px 1fr;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .speaker {
+      color: var(--cyan);
+      font-weight: 800;
+      text-transform: uppercase;
+      font-size: .86rem;
+    }
+
+    .dialogue {
+      margin: 0;
+      line-height: 1.5;
+      color: #dce9f8;
+    }
+
+    .guide {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin: 14px 0 24px;
+    }
+
+    .guide > div,
+    .statement {
+      border: 1px solid var(--line);
+      background: rgba(9, 17, 29, .68);
+      border-radius: 8px;
+      padding: 14px;
+    }
+
+    .guide strong {
+      display: block;
+      margin-bottom: 7px;
+      color: #ffffff;
+    }
+
+    .guide span,
+    .statement p,
+    .statement li {
+      color: #b7c8db;
+      line-height: 1.55;
+      font-size: .94rem;
+    }
+
+    .statement {
+      margin-top: 16px;
+      display: grid;
+      grid-template-columns: .75fr 1.25fr;
+      gap: 18px;
+    }
+
+    h2 {
+      margin: 0 0 10px;
+      font-size: 1.35rem;
+      letter-spacing: 0;
+    }
+
+    ul { margin: 0; padding-left: 18px; }
+
+    kbd {
+      display: inline-flex;
+      min-width: 28px;
+      min-height: 24px;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(255,255,255,.22);
+      border-bottom-color: rgba(255,255,255,.38);
+      border-radius: 5px;
+      background: rgba(255,255,255,.08);
+      color: #fff;
+      font-size: .82rem;
+      padding: 1px 6px;
+    }
+
+    @media (max-width: 820px) {
+      header,
+      .statement {
+        grid-template-columns: 1fr;
+      }
+
+      .guide {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .toolbar,
+      .message {
+        grid-template-columns: 1fr;
+      }
+
+      .message {
+        display: block;
+      }
+
+      .speaker {
+        margin-bottom: 6px;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .guide { grid-template-columns: 1fr; }
+      .hud { gap: 6px; }
+      .pill { min-width: auto; }
+      button { flex: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="stars"></div>
+  <main>
+    <header>
+      <section>
+        <p class="kicker">Browser Platformer Toy Project</p>
+        <h1>TUC: Tau Ceti-B2 Countdown</h1>
+        <p class="intro">
+          자원이 고갈된 미래, TUC 소속 우주 전투기 조종사가 테라포밍 코어를 가동하기 위해 외계 행성 기지로 파견된다.
+          훈련, 침투, 저중력 연구소, 중앙제어실, 마지막 탈출까지 이어지는 짧은 스테이지형 플랫폼 게임이다.
+        </p>
+      </section>
+      <aside class="status-panel" aria-label="mission status">
+        <div class="status-row"><span>Mission</span><b id="missionName">훈련소</b></div>
+        <div class="status-row"><span>Signal</span><b id="signalState">TUC 회장 직통</b></div>
+        <div class="status-row"><span>Objective</span><b id="objectiveText">표적 제거</b></div>
+      </aside>
+    </header>
+
+    <section class="shell" aria-label="playable game">
+      <div class="toolbar">
+        <div class="hud">
+          <span class="pill">Stage <b id="stageHud">0</b></span>
+          <span class="pill">HP <b id="hpHud">5</b></span>
+          <span class="pill">Targets <b id="enemyHud">0</b></span>
+          <span class="pill">Time <b id="timeHud">--</b></span>
+        </div>
+        <div class="controls">
+          <button id="restartBtn" type="button" title="처음부터 다시 시작">Restart</button>
+          <button id="muteBtn" type="button" title="효과음 켜기/끄기">Sound On</button>
+        </div>
+      </div>
+      <canvas id="game" width="960" height="540" aria-label="TUC platformer game canvas"></canvas>
+      <div class="message" aria-live="polite">
+        <div class="speaker" id="speaker">TUC 회장</div>
+        <p class="dialogue" id="dialogue">훈련을 시작하지. A/D로 이동, W 또는 Space로 점프, K로 에너지건을 발사하게.</p>
+      </div>
+    </section>
+
+    <section class="guide" aria-label="controls and stages">
+      <div><strong>이동</strong><span><kbd>A</kbd> <kbd>D</kbd> 좌우 이동</span></div>
+      <div><strong>점프</strong><span><kbd>W</kbd> 또는 <kbd>Space</kbd></span></div>
+      <div><strong>공격</strong><span><kbd>K</kbd> 발사 · <kbd>C</kbd> 앉기</span></div>
+      <div><strong>진행</strong><span><kbd>E</kbd> 상호작용 · 출구로 이동</span></div>
+    </section>
+
+    <section class="statement">
+      <div>
+        <h2>Artist Statement</h2>
+        <p>
+          이 게임은 미래 개척 서사의 겉모습 아래 기업의 통제와 희생을 숨긴 짧은 액션 플랫폼 경험이다.
+          플레이어는 임무를 수행할수록 영웅이 아니라 은폐 대상이 되어 간다.
+        </p>
+      </div>
+      <div>
+        <h2>AI와 제작 방식</h2>
+        <ul>
+          <li>AI와 함께 시나리오를 스테이지 목표, 규칙, 대사, 난이도 곡선으로 변환했다.</li>
+          <li>제공된 우주인 스프라이트 이미지를 플레이어 캐릭터로 사용했고, 나머지 배경과 적은 HTML Canvas 코드로 구현했다.</li>
+          <li>웹 브라우저에서 바로 실행되는 단일 HTML 기반 게임으로 제작했다.</li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+    ctx.imageSmoothingEnabled = false;
+    const W = canvas.width;
+    const H = canvas.height;
+
+    const ui = {
+      stage: document.getElementById("stageHud"),
+      hp: document.getElementById("hpHud"),
+      enemies: document.getElementById("enemyHud"),
+      time: document.getElementById("timeHud"),
+      dialogue: document.getElementById("dialogue"),
+      speaker: document.getElementById("speaker"),
+      mission: document.getElementById("missionName"),
+      signal: document.getElementById("signalState"),
+      objective: document.getElementById("objectiveText"),
+      restart: document.getElementById("restartBtn"),
+      mute: document.getElementById("muteBtn")
+    };
+
+    function makeTransparentSource(img) {
+      const off = document.createElement("canvas");
+      off.width = img.naturalWidth;
+      off.height = img.naturalHeight;
+      const offCtx = off.getContext("2d");
+      offCtx.imageSmoothingEnabled = false;
+      offCtx.drawImage(img, 0, 0);
+      const pixels = offCtx.getImageData(0, 0, off.width, off.height);
+      const data = pixels.data;
+      for (let i = 0; i < data.length; i += 4) {
+        if (data[i] > 238 && data[i + 1] > 238 && data[i + 2] > 238) data[i + 3] = 0;
+      }
+      offCtx.putImageData(pixels, 0, 0);
+      return off;
+    }
+
+    function makeTargetTransparent(img) {
+      const off = document.createElement("canvas");
+      off.width = img.naturalWidth;
+      off.height = img.naturalHeight;
+      const offCtx = off.getContext("2d");
+      offCtx.imageSmoothingEnabled = false;
+      offCtx.drawImage(img, 0, 0);
+      const pixels = offCtx.getImageData(0, 0, off.width, off.height);
+      const data = pixels.data;
+      const w = off.width;
+      const h = off.height;
+      const visited = new Uint8Array(w * h);
+      const stack = [0, 0, w - 1, 0, 0, h - 1, w - 1, h - 1];
+      while (stack.length > 0) {
+        const y = stack.pop();
+        const x = stack.pop();
+        if (x < 0 || x >= w || y < 0 || y >= h) continue;
+        const idx = y * w + x;
+        if (visited[idx]) continue;
+        const i = idx * 4;
+        if (data[i] < 60 && data[i + 1] < 60 && data[i + 2] < 60) continue;
+        visited[idx] = 1;
+        data[i + 3] = 0;
+        stack.push(x + 1, y, x - 1, y, x, y + 1, x, y - 1);
+      }
+      offCtx.putImageData(pixels, 0, 0);
+      return off;
+    }
+
+    function makeLightBackgroundTransparent(img) {
+      const off = document.createElement("canvas");
+      off.width = img.naturalWidth;
+      off.height = img.naturalHeight;
+      const offCtx = off.getContext("2d");
+      offCtx.imageSmoothingEnabled = false;
+      offCtx.drawImage(img, 0, 0);
+      const pixels = offCtx.getImageData(0, 0, off.width, off.height);
+      const data = pixels.data;
+      const w = off.width;
+      const h = off.height;
+      const visited = new Uint8Array(w * h);
+      const stack = [0, 0, w - 1, 0, 0, h - 1, w - 1, h - 1];
+      while (stack.length > 0) {
+        const y = stack.pop();
+        const x = stack.pop();
+        if (x < 0 || x >= w || y < 0 || y >= h) continue;
+        const idx = y * w + x;
+        if (visited[idx]) continue;
+        const i = idx * 4;
+        const max = Math.max(data[i], data[i + 1], data[i + 2]);
+        const min = Math.min(data[i], data[i + 1], data[i + 2]);
+        if (data[i + 3] === 0 || max < 210 || max - min > 32) continue;
+        visited[idx] = 1;
+        data[i + 3] = 0;
+        stack.push(x + 1, y, x - 1, y, x, y + 1, x, y - 1);
+      }
+      offCtx.putImageData(pixels, 0, 0);
+      return off;
+    }
+
+    const sprite = new Image();
+    const idleSprite = new Image();
+    const targetSprite = new Image();
+    const enemyBotSprite = new Image();
+    const backgroundImages = {
+      stage0_trainingcenter: new Image(),
+      stage1_background: new Image(),
+      stage2_background: new Image()
+    };
+    let spriteCanvas = null;
+    let idleCanvas = null;
+    let targetCanvas = null;
+    let enemyBotCanvas = null;
+    sprite.src = "astronaut-sprite-transparent.png";
+    idleSprite.src = "astronaut-idle-side-transparent.png";
+    targetSprite.src = "target.png";
+    backgroundImages.stage0_trainingcenter.src = "stage0_trainingcenter.png";
+    backgroundImages.stage1_background.src = "stage1_background.png";
+    backgroundImages.stage2_background.src = "stage2_background.png";
+    sprite.onload = () => {
+      spriteCanvas = sprite;
+    };
+    idleSprite.onload = () => {
+      idleCanvas = idleSprite;
+    };
+    targetSprite.onload = () => {
+      targetCanvas = targetSprite;
+    };
+    function prepareEnemyBotCanvas() {
+      if (!enemyBotSprite.naturalWidth) return;
+      enemyBotCanvas = enemyBotSprite;
+    }
+    enemyBotSprite.onload = prepareEnemyBotCanvas;
+    enemyBotSprite.src = "enemy_bot1_transparent.png";
+    if (enemyBotSprite.complete) prepareEnemyBotCanvas();
+    sprite.onerror = () => setDialogue("SYSTEM", "캐릭터 스프라이트 파일을 찾을 수 없습니다. astronaut-sprite-transparent.png를 index.html과 같은 폴더에 두세요.");
+    idleSprite.onerror = () => setDialogue("SYSTEM", "기본 자세 이미지 파일을 찾을 수 없습니다. astronaut-idle-side-transparent.png를 index.html과 같은 폴더에 두세요.");
+
+    const keys = new Set();
+    let soundOn = true;
+    let audioCtx = null;
+    let lastTime = 0;
+    let gameState;
+
+    const stages = [
+      {
+        id: 0,
+        name: "우주군 훈련소",
+        signal: "TUC 회장 직통",
+        objective: "표적 3개 격파",
+        gravity: 1500,
+        bg: ["#101b2d", "#172a46"],
+        backgroundImage: "stage0_trainingcenter",
+        message: "훈련을 시작하지. A/D로 이동, W 또는 Space로 점프, K로 사격. 사다리 앞에서 W/S로 오르내릴 수 있다.",
+        platforms: [[0, 492, 960, 48], [0, 370, 176, 18], [243, 370, 90, 18], [386, 423, 500, 18], [440, 320, 120, 18], [620, 250, 310, 18]],
+        ladders: [{ x: 178, y: 358, w: 70, h: 134 }],
+        enemies: [
+          { x: 751, y: 168, type: "target" },
+          { x: 612, y: 341, type: "target" },
+          { x: 476, y: 238, type: "target" }
+        ],
+        exit: { x: 65, y: 296, w: 45, h: 74 }
+      },
+      {
+        id: 1,
+        name: "외계행성기지 내부",
+        signal: "TUC 회장 직통",
+        objective: "산업용 로봇 제압",
+        gravity: 1500,
+        bg: ["#101827", "#142438"],
+        backgroundImage: "stage1_background",
+        message: "기지 자동화 설비가 오작동 중이다. 로봇 몇 기를 처리하고 코어 구역으로 진입해.",
+        platforms: [[0, 492, 960, 48], [130, 410, 150, 20], [375, 350, 170, 20], [650, 405, 170, 20]],
+        enemies: [
+          { x: 390, y: 308, type: "bot", patrol: [355, 525] },
+          { x: 705, y: 363, type: "bot", patrol: [645, 818] },
+          { x: 590, y: 450, type: "bot", patrol: [500, 690] }
+        ],
+        exit: { x: 888, y: 418, w: 45, h: 74 }
+      },
+      {
+        id: 2,
+        name: "버려진 연구소",
+        signal: "TUC 회장 직통",
+        objective: "저중력 구역 돌파",
+        gravity: 780,
+        jump: 640,
+        bg: ["#0c1a2c", "#1a2340"],
+        backgroundImage: "stage2_background",
+        message: "연구소 중력장이 불안정하다. 점프가 길게 뜰 거야. 착지 지점을 보고 움직여.",
+        platforms: [[0, 492, 960, 48], [90, 420, 120, 18], [280, 355, 130, 18], [500, 290, 130, 18], [725, 360, 140, 18]],
+        enemies: [
+          { x: 315, y: 313, type: "bot", patrol: [275, 410] },
+          { x: 530, y: 248, type: "bot", patrol: [498, 630] },
+          { x: 760, y: 318, type: "bot", patrol: [722, 865] },
+          { x: 445, y: 450, type: "bot", patrol: [370, 560] },
+          { x: 690, y: 450, type: "bot", patrol: [610, 780] }
+        ],
+        exit: { x: 888, y: 418, w: 45, h: 74 }
+      },
+      {
+        id: 3,
+        name: "중앙제어실",
+        signal: "신호 변조 감지",
+        objective: "컴퓨터 해킹",
+        gravity: 1500,
+        bg: ["#111528", "#261b32"],
+        backgroundImage: "stage2_background",
+        message: "중앙 컴퓨터에 접속해. 적을 모두 제거한 뒤 컴퓨터 위에서 E 키로 해킹하라.",
+        platforms: [[0, 492, 960, 48], [120, 400, 160, 20], [390, 340, 185, 20], [675, 405, 150, 20]],
+        enemies: [
+          { x: 150, y: 358, type: "bot", patrol: [115, 280] },
+          { x: 430, y: 298, type: "bot", patrol: [388, 575] },
+          { x: 720, y: 363, type: "bot", patrol: [670, 828] },
+          { x: 520, y: 450, type: "bot", patrol: [440, 625] },
+          { x: 765, y: 450, type: "bot", patrol: [690, 860] }
+        ],
+        console: { x: 462, y: 272, w: 42, h: 68 },
+        exit: { x: 900, y: 418, w: 35, h: 74 }
+      },
+      {
+        id: 4,
+        name: "마지막 카운트다운",
+        signal: "비상 주파수",
+        objective: "전투기까지 탈출",
+        gravity: 1500,
+        timer: 42,
+        bg: ["#21121b", "#361923"],
+        backgroundImage: "stage2_background",
+        message: "폭발 절차가 시작됐다. 왼쪽 구역부터 폐쇄된다. 멈추지 말고 전투기까지 뛰어!",
+        platforms: [[0, 492, 1240, 48], [160, 410, 130, 18], [355, 355, 120, 18], [560, 410, 135, 18], [800, 350, 130, 18], [1020, 415, 130, 18]],
+        enemies: [
+          { x: 410, y: 313, type: "bot", patrol: [350, 475] },
+          { x: 610, y: 368, type: "bot", patrol: [560, 695] },
+          { x: 850, y: 308, type: "bot", patrol: [800, 930] },
+          { x: 980, y: 450, type: "bot", patrol: [910, 1100] }
+        ],
+        ship: { x: 1160, y: 392, w: 64, h: 100 },
+        exit: { x: 1168, y: 396, w: 54, h: 96 },
+        worldWidth: 1240
+      }
+    ];
+
+    function rectsOverlap(a, b) {
+      return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+    }
+
+    function initGame() {
+      gameState = {
+        stageIndex: 0,
+        player: { x: 44, y: 360, w: 54, h: 84, vx: 0, vy: 0, facing: 1, hp: 5, grounded: false, invuln: 0, shootCd: 0, onLadder: false, prevUp: false, prevDown: false, lastPlatformIdx: -1 },
+        bullets: [],
+        particles: [],
+        cameraX: 0,
+        timer: null,
+        closedX: -80,
+        hacked: false,
+        won: false,
+        lost: false,
+        stageStart: 0
+      };
+      loadStage(0);
+    }
+
+    function loadStage(index) {
+      const s = stages[index];
+      gameState.stageIndex = index;
+      gameState.player.x = 44;
+      gameState.player.y = 360;
+      gameState.player.vx = 0;
+      gameState.player.vy = 0;
+      gameState.player.grounded = false;
+      gameState.player.invuln = 0;
+      gameState.player.shootCd = 0;
+      gameState.player.onLadder = false;
+      gameState.player.prevUp = false;
+      gameState.player.prevDown = false;
+      gameState.player.lastPlatformIdx = -1;
+      gameState.bullets = [];
+      gameState.particles = [];
+      gameState.cameraX = 0;
+      gameState.closedX = -80;
+      gameState.hacked = false;
+      gameState.stageStart = performance.now();
+      gameState.timer = s.timer || null;
+      gameState.enemies = s.enemies.map((e, i) => {
+        const isTarget = e.type === "target";
+        const w = isTarget ? 48 : 60;
+        const h = isTarget ? 82 : 86;
+        const x = isTarget ? e.x : e.x - (w - 44) / 2;
+        const y = isTarget ? e.y : e.y - (h - 44);
+        return {
+          ...e,
+          id: i,
+          x,
+          y,
+          w,
+          h,
+          hp: isTarget ? 1 : (index === 3 ? 4 : 2),
+          vx: isTarget ? 0 : (i % 2 ? -55 : 55),
+          alive: true
+        };
+      });
+      setDialogue("TUC 회장", s.message);
+      updateStaticUi();
+    }
+
+    function setDialogue(speaker, text) {
+      ui.speaker.textContent = speaker;
+      ui.dialogue.textContent = text;
+    }
+
+    function updateStaticUi() {
+      const s = stages[gameState.stageIndex];
+      ui.stage.textContent = s.id;
+      ui.mission.textContent = s.name;
+      ui.signal.textContent = s.signal;
+      ui.objective.textContent = s.objective;
+    }
+
+    function beep(freq, duration, type = "square", gain = 0.025) {
+      if (!soundOn) return;
+      audioCtx ||= new (window.AudioContext || window.webkitAudioContext)();
+      const osc = audioCtx.createOscillator();
+      const vol = audioCtx.createGain();
+      osc.type = type;
+      osc.frequency.value = freq;
+      vol.gain.value = gain;
+      osc.connect(vol);
+      vol.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + duration);
+    }
+
+    function shoot() {
+      const p = gameState.player;
+      if (p.shootCd > 0) return;
+      const crouching = keys.has("c") && p.grounded;
+      p.shootCd = 0.22;
+      gameState.bullets.push({
+        x: p.x + (p.facing > 0 ? p.w - 4 : -10),
+        y: p.y + (crouching ? 54 : 38),
+        w: 18,
+        h: 6,
+        vx: 620 * p.facing,
+        life: 0.8
+      });
+      beep(720, 0.04, "square", 0.02);
+    }
+
+    function update(dt) {
+      if (gameState.won || gameState.lost) return;
+      const s = stages[gameState.stageIndex];
+      const p = gameState.player;
+      p.invuln = Math.max(0, p.invuln - dt);
+      p.shootCd = Math.max(0, p.shootCd - dt);
+
+      const left = keys.has("a") || keys.has("arrowleft");
+      const right = keys.has("d") || keys.has("arrowright");
+      const up = keys.has("w") || keys.has("arrowup");
+      const down = keys.has("s") || keys.has("arrowdown");
+      const jumpKey = keys.has(" ");
+      const upJust = up && !p.prevUp;
+      const downJust = down && !p.prevDown;
+      p.prevUp = up;
+      p.prevDown = down;
+
+      let activeLadder = null;
+      if (s.ladders) {
+        for (const l of s.ladders) {
+          if (rectsOverlap(p, l)) { activeLadder = l; break; }
+        }
+      }
+      if (!activeLadder && p.onLadder) {
+        p.onLadder = false;
+        p.lastPlatformIdx = -1;
+      }
+      if (activeLadder && !p.onLadder && (upJust || downJust)) {
+        p.onLadder = true;
+        p.vy = 0;
+        p.lastPlatformIdx = -1;
+        if (p.grounded) {
+          for (let i = 0; i < s.platforms.length; i++) {
+            const pl = s.platforms[i];
+            if (p.y + p.h >= pl[1] - 2 && p.y + p.h <= pl[1] + 6 && p.x + p.w > pl[0] && p.x < pl[0] + pl[2]) {
+              p.lastPlatformIdx = i;
+              break;
+            }
+          }
+        }
+      }
+      if (p.onLadder && jumpKey) {
+        p.onLadder = false;
+        p.lastPlatformIdx = -1;
+        p.vy = -(s.jump || 560);
+        p.grounded = false;
+        beep(260, 0.06, "triangle", 0.018);
+      }
+
+      const crouching = keys.has("c") && p.grounded && !p.onLadder;
+      const speed = gameState.stageIndex === 4 ? 285 : 235;
+      p.vx = crouching ? 0 : (right ? speed : 0) - (left ? speed : 0);
+      if (p.vx !== 0) p.facing = p.vx > 0 ? 1 : -1;
+
+      if (p.onLadder) {
+        if (up) p.vy = -180;
+        else if (down) p.vy = 180;
+        else p.vy = 0;
+      } else {
+        if ((up || jumpKey) && p.grounded && !crouching) {
+          p.vy = -(s.jump || 560);
+          p.grounded = false;
+          beep(260, 0.06, "triangle", 0.018);
+        }
+        p.vy += s.gravity * dt;
+      }
+
+      if (keys.has("k")) shoot();
+
+      movePlayer(dt, s);
+      updateEnemies(dt, s);
+      updateBullets(dt);
+      updateParticles(dt);
+      checkStageRules(dt, s);
+      updateHud();
+    }
+
+    function movePlayer(dt, s) {
+      const p = gameState.player;
+      const worldWidth = s.worldWidth || W;
+      p.x += p.vx * dt;
+      p.x = Math.max(0, Math.min(worldWidth - p.w, p.x));
+
+      p.y += p.vy * dt;
+      p.grounded = false;
+      for (let i = 0; i < s.platforms.length; i++) {
+        const pl = s.platforms[i];
+        const platform = { x: pl[0], y: pl[1], w: pl[2], h: pl[3] };
+        if (p.onLadder) {
+          if (p.vy < 0) continue;
+          if (p.lastPlatformIdx === i) continue;
+        }
+        if (rectsOverlap(p, platform) && p.vy >= 0 && p.y + p.h - p.vy * dt <= platform.y + 8) {
+          p.y = platform.y - p.h;
+          p.vy = 0;
+          p.grounded = true;
+          if (p.onLadder) {
+            p.onLadder = false;
+            p.lastPlatformIdx = -1;
+          }
+        }
+      }
+      if (p.y > H + 80) damagePlayer(2, "추락했다. 기지 바닥으로 복귀!");
+
+      const margin = W * 0.38;
+      gameState.cameraX = Math.max(0, Math.min((s.worldWidth || W) - W, p.x - margin));
+    }
+
+    function updateEnemies(dt, s) {
+      const p = gameState.player;
+      for (const e of gameState.enemies) {
+        if (!e.alive) continue;
+        if (e.type === "bot") {
+          e.x += e.vx * dt;
+          if (e.x < e.patrol[0] || e.x + e.w > e.patrol[1]) {
+            e.vx *= -1;
+            e.x = Math.max(e.patrol[0], Math.min(e.patrol[1] - e.w, e.x));
+          }
+        }
+        if (rectsOverlap(p, { x: e.x, y: e.y, w: e.w, h: e.h })) {
+          damagePlayer(1, "로봇과 충돌했다. 거리를 벌리고 K로 제압해.");
+        }
+      }
+    }
+
+    function updateBullets(dt) {
+      for (const b of gameState.bullets) {
+        b.x += b.vx * dt;
+        b.life -= dt;
+        for (const e of gameState.enemies) {
+          if (!e.alive) continue;
+          if (rectsOverlap(b, { x: e.x, y: e.y, w: e.w, h: e.h })) {
+            b.life = 0;
+            e.hp -= 1;
+            burst(e.x + e.w / 2, e.y + e.h / 2, e.type === "target" ? "#71ef9b" : "#ffba4a");
+            beep(e.hp <= 0 ? 170 : 520, 0.05, "sawtooth", 0.018);
+            if (e.hp <= 0) e.alive = false;
+          }
+        }
+      }
+      gameState.bullets = gameState.bullets.filter(b => b.life > 0 && b.x > -80 && b.x < (stages[gameState.stageIndex].worldWidth || W) + 80);
+    }
+
+    function updateParticles(dt) {
+      for (const p of gameState.particles) {
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.life -= dt;
+      }
+      gameState.particles = gameState.particles.filter(p => p.life > 0);
+    }
+
+    function burst(x, y, color) {
+      for (let i = 0; i < 13; i++) {
+        gameState.particles.push({
+          x, y, color,
+          vx: (Math.random() - .5) * 190,
+          vy: (Math.random() - .5) * 160,
+          life: .32 + Math.random() * .22
+        });
+      }
+    }
+
+    function damagePlayer(amount, text) {
+      const p = gameState.player;
+      if (p.invuln > 0) return;
+      p.hp -= amount;
+      p.invuln = 1.1;
+      p.vx = -p.facing * 150;
+      p.vy = -260;
+      setDialogue("경고", text);
+      beep(92, 0.12, "sawtooth", 0.035);
+      if (p.hp <= 0) {
+        gameState.lost = true;
+        setDialogue("SYSTEM", "생명 유지 장치가 정지했다. Restart로 다시 시도하라.");
+      }
+    }
+
+    function checkStageRules(dt, s) {
+      const p = gameState.player;
+      const alive = gameState.enemies.filter(e => e.alive).length;
+
+      if (gameState.stageIndex === 3 && s.console && !gameState.hacked) {
+        const nearConsole = rectsOverlap(p, s.console);
+        if (nearConsole && alive === 0 && keys.has("e")) {
+          gameState.hacked = true;
+          setDialogue("녹화음", "(치지직) ...그 놈은 너무 많은 걸 알고 있어. 수리 임무 중 사고사로 위장해. 그 정도 폭발이면 흔적도 안 남을거다. (치직)");
+          ui.signal.textContent = "배신 증거 확보";
+          ui.objective.textContent = "출구로 이동";
+          beep(440, 0.18, "triangle", 0.025);
+        } else if (nearConsole && alive > 0) {
+          setDialogue("SYSTEM", "보안 잠금 상태. 적 유닛을 모두 제거해야 단말 접근이 허용된다.");
+        }
+      }
+
+      if (gameState.stageIndex === 4) {
+        gameState.timer -= dt;
+        gameState.closedX += 88 * dt;
+        if (p.x < gameState.closedX) {
+          damagePlayer(5, "폐쇄 구역에 갇혔다. 탈출 실패.");
+        }
+        if (gameState.timer <= 0) {
+          gameState.lost = true;
+          setDialogue("SYSTEM", "카운트다운 종료. 기지가 폭발했다.");
+        }
+      }
+
+      const canExit = alive === 0 && (gameState.stageIndex !== 3 || gameState.hacked);
+      if (canExit && rectsOverlap(p, s.exit)) {
+        if (gameState.stageIndex === stages.length - 1) {
+          gameState.won = true;
+          setDialogue("파일럿", "전투기 탑승 완료. TUC의 거짓말을 지구에 전송한다.");
+          ui.objective.textContent = "탈출 성공";
+          beep(620, 0.18, "triangle", 0.026);
+          setTimeout(() => beep(820, 0.18, "triangle", 0.026), 160);
+        } else {
+          loadStage(gameState.stageIndex + 1);
+        }
+      } else if (alive > 0 && rectsOverlap(p, s.exit)) {
+        setDialogue("TUC 회장", "아직 구역이 안전하지 않다. 남은 표적을 제거해.");
+      }
+    }
+
+    function updateHud() {
+      const alive = gameState.enemies.filter(e => e.alive).length;
+      ui.stage.textContent = stages[gameState.stageIndex].id;
+      ui.hp.textContent = Math.max(0, gameState.player.hp);
+      ui.enemies.textContent = alive;
+      ui.time.textContent = gameState.timer == null ? "--" : Math.max(0, Math.ceil(gameState.timer));
+    }
+
+    function draw() {
+      const s = stages[gameState.stageIndex];
+      const cam = gameState.cameraX;
+      drawBackground(s, cam);
+      ctx.save();
+      ctx.translate(-cam, 0);
+      drawWorld(s);
+      drawBullets();
+      drawEnemies();
+      drawPlayer();
+      drawParticles();
+      ctx.restore();
+      drawOverlay(s);
+      requestAnimationFrame(draw);
+    }
+
+    function drawBackground(s, cam) {
+      const background = backgroundImages[s.backgroundImage];
+      if (background?.complete && background.naturalWidth > 0) {
+        drawCoverImage(background, 0, 0, W, H);
+        return;
+      }
+
+      const grad = ctx.createLinearGradient(0, 0, 0, H);
+      grad.addColorStop(0, s.bg[0]);
+      grad.addColorStop(1, s.bg[1]);
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, W, H);
+
+      ctx.fillStyle = "rgba(255,255,255,.18)";
+      for (let i = 0; i < 70; i++) {
+        const x = (i * 137 - cam * 0.25) % W;
+        const y = (i * 71) % 260;
+        ctx.fillRect((x + W) % W, y + 18, 2, 2);
+      }
+
+      if (gameState.stageIndex === 0) {
+        ctx.fillStyle = "rgba(80,215,255,.08)";
+        for (let x = -80; x < W + 80; x += 64) ctx.fillRect(x - (cam * .4) % 64, 120, 28, 260);
+      } else {
+        ctx.strokeStyle = "rgba(80,215,255,.14)";
+        ctx.lineWidth = 2;
+        for (let x = -120; x < W + 160; x += 110) {
+          ctx.beginPath();
+          ctx.moveTo(x - (cam * .55) % 110, 90);
+          ctx.lineTo(x - 45 - (cam * .55) % 110, 492);
+          ctx.stroke();
+        }
+      }
+    }
+
+    function drawCoverImage(img, x, y, w, h) {
+      const sourceRatio = img.naturalWidth / img.naturalHeight;
+      const targetRatio = w / h;
+      let sx = 0;
+      let sy = 0;
+      let sw = img.naturalWidth;
+      let sh = img.naturalHeight;
+
+      if (sourceRatio > targetRatio) {
+        sw = img.naturalHeight * targetRatio;
+        sx = (img.naturalWidth - sw) / 2;
+      } else {
+        sh = img.naturalWidth / targetRatio;
+        sy = (img.naturalHeight - sh) / 2;
+      }
+
+      ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
+    }
+
+    function drawWorld(s) {
+      for (const pl of s.platforms) {
+        ctx.fillStyle = "#243247";
+        ctx.fillRect(pl[0], pl[1], pl[2], pl[3]);
+        ctx.fillStyle = "#67d8ff";
+        ctx.fillRect(pl[0], pl[1], pl[2], 4);
+        ctx.fillStyle = "rgba(0,0,0,.28)";
+        ctx.fillRect(pl[0], pl[1] + pl[3] - 5, pl[2], 5);
+      }
+
+      drawExit(s);
+      if (s.console) drawConsole(s.console);
+      if (s.ship) drawShip(s.ship);
+      if (gameState.stageIndex === 4) drawClosure();
+    }
+
+    function drawExit(s) {
+      ctx.strokeStyle = gameState.enemies.some(e => e.alive) ? "rgba(255,75,92,.65)" : "rgba(113,239,155,.9)";
+      ctx.lineWidth = 4;
+      ctx.strokeRect(s.exit.x, s.exit.y, s.exit.w, s.exit.h);
+      ctx.fillStyle = "rgba(255,255,255,.08)";
+      ctx.fillRect(s.exit.x + 6, s.exit.y + 6, s.exit.w - 12, s.exit.h - 12);
+    }
+
+    function drawConsole(c) {
+      ctx.fillStyle = "#0b1018";
+      ctx.fillRect(c.x, c.y, c.w, c.h);
+      ctx.fillStyle = gameState.hacked ? "#71ef9b" : "#50d7ff";
+      ctx.fillRect(c.x + 8, c.y + 10, c.w - 16, 18);
+      ctx.fillStyle = "rgba(255,255,255,.2)";
+      ctx.fillRect(c.x + 9, c.y + 38, c.w - 18, 6);
+      ctx.fillRect(c.x + 9, c.y + 50, c.w - 18, 6);
+
+      if (gameState.hacked) return;
+      const alive = gameState.enemies.filter(e => e.alive).length;
+      const ready = alive === 0;
+      ctx.save();
+      ctx.font = "700 11px Segoe UI";
+      ctx.textAlign = "center";
+      ctx.fillStyle = ready ? "#71ef9b" : "#ff4b5c";
+      ctx.fillText(ready ? "▼ PRESS E ▼" : "LOCKED", c.x + c.w / 2, c.y - 8);
+      ctx.restore();
+    }
+
+    function drawShip(ship) {
+      ctx.fillStyle = "#d7e6f2";
+      ctx.beginPath();
+      ctx.moveTo(ship.x + ship.w / 2, ship.y);
+      ctx.lineTo(ship.x + ship.w, ship.y + ship.h - 20);
+      ctx.lineTo(ship.x + ship.w / 2, ship.y + ship.h);
+      ctx.lineTo(ship.x, ship.y + ship.h - 20);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = "#16283d";
+      ctx.fillRect(ship.x + 22, ship.y + 30, 20, 26);
+      ctx.fillStyle = "#ffba4a";
+      ctx.fillRect(ship.x + 18, ship.y + ship.h - 4, 28, 16);
+    }
+
+    function drawClosure() {
+      const x = gameState.closedX;
+      ctx.fillStyle = "rgba(255, 75, 92, .22)";
+      ctx.fillRect(0, 0, x, H);
+      ctx.fillStyle = "rgba(255, 75, 92, .82)";
+      ctx.fillRect(x - 8, 0, 8, H);
+      ctx.fillStyle = "#ffdee3";
+      ctx.font = "700 18px Segoe UI";
+      ctx.fillText("LOCKDOWN", Math.max(12, x - 126), 44);
+    }
+
+    function drawEnemyBot(e) {
+      const botImage = enemyBotCanvas || (enemyBotSprite.complete && enemyBotSprite.naturalWidth ? enemyBotSprite : null);
+      if (!botImage) {
+        ctx.fillStyle = "#7e8795";
+        ctx.fillRect(e.x + 6, e.y + 8, 32, 30);
+        ctx.fillStyle = "#252b35";
+        ctx.fillRect(e.x + 9, e.y, 26, 14);
+        ctx.fillStyle = "#ff4b5c";
+        ctx.fillRect(e.x + (e.vx > 0 ? 24 : 13), e.y + 5, 6, 4);
+        ctx.fillStyle = "#596371";
+        ctx.fillRect(e.x, e.y + 20, 7, 18);
+        ctx.fillRect(e.x + 37, e.y + 20, 7, 18);
+        return;
+      }
+
+      const botDrawH = 89;
+      const botDrawW = botImage.width / botImage.height * botDrawH;
+      const botDrawX = e.x + (e.w - botDrawW) / 2;
+      const botDrawY = e.y + e.h - botDrawH + 2;
+      ctx.drawImage(botImage, botDrawX, botDrawY, botDrawW, botDrawH);
+    }
+
+    function drawEnemies() {
+      for (const e of gameState.enemies) {
+        if (!e.alive) continue;
+        if (e.type === "target") {
+          if (targetCanvas) {
+            ctx.drawImage(
+              targetCanvas,
+              e.x,
+              e.y,
+              e.w,
+              e.h
+            );
+          } else {
+            ctx.fillStyle = "#101827";
+            ctx.fillRect(e.x, e.y, e.w, e.h);
+            ctx.strokeStyle = "#71ef9b";
+            ctx.lineWidth = 4;
+            ctx.strokeRect(e.x + 2, e.y + 2, e.w - 4, e.h - 4);
+          }
+        } else {
+          try {
+            drawEnemyBot(e);
+          } catch (err) {
+            ctx.fillStyle = "#7e8795";
+            ctx.fillRect(e.x + 6, e.y + 8, 32, 30);
+            ctx.fillStyle = "#252b35";
+            ctx.fillRect(e.x + 9, e.y, 26, 14);
+            ctx.fillStyle = "#ff4b5c";
+            ctx.fillRect(e.x + (e.vx > 0 ? 24 : 13), e.y + 5, 6, 4);
+          }
+        }
+      }
+    }
+
+    function drawBullets() {
+      ctx.fillStyle = "#50d7ff";
+      for (const b of gameState.bullets) {
+        ctx.fillRect(b.x, b.y, b.w, b.h);
+        ctx.fillStyle = "rgba(80,215,255,.3)";
+        ctx.fillRect(b.x - Math.sign(b.vx) * 20, b.y + 1, 20, 4);
+        ctx.fillStyle = "#50d7ff";
+      }
+    }
+
+    function drawPlayer() {
+      const p = gameState.player;
+      ctx.save();
+      if (p.invuln > 0 && Math.floor(performance.now() / 80) % 2 === 0) ctx.globalAlpha = .45;
+      const frames = {
+        idle: [96, 126, 146, 282],
+        run: [62, 526, 206, 236],
+        jump: [690, 456, 190, 282],
+        crouch: [948, 536, 196, 236],
+        shoot: [72, 868, 242, 232],
+        crouchShoot: [518, 868, 242, 232]
+      };
+      const crouching = keys.has("c") && p.grounded;
+      const shooting = keys.has("k");
+      const isIdle = Math.abs(p.vx) === 0 && p.grounded && !shooting && !crouching;
+      let frame = Math.abs(p.vx) > 0 ? frames.run : frames.idle;
+      if (!p.grounded) frame = frames.jump;
+      if (crouching) frame = shooting ? frames.crouchShoot : frames.crouch;
+      else if (shooting) frame = frames.shoot;
+      const [sx, sy, sw, sh] = frame;
+
+      if (isIdle && idleCanvas) {
+        ctx.save();
+        const sourceW = idleCanvas.naturalWidth || idleCanvas.width;
+        const sourceH = idleCanvas.naturalHeight || idleCanvas.height;
+        const drawH = 106;
+        const drawW = sourceW / sourceH * drawH;
+        const drawX = p.x + (p.w - drawW) / 2;
+        const drawY = p.y + p.h - drawH + 2;
+        if (p.facing < 0) {
+          ctx.translate(p.x + p.w, p.y);
+          ctx.scale(-1, 1);
+          ctx.drawImage(idleCanvas, 0, 0, sourceW, sourceH, -p.w + (p.w - drawW) / 2, p.h - drawH + 2, drawW, drawH);
+        } else {
+          ctx.drawImage(idleCanvas, 0, 0, sourceW, sourceH, drawX, drawY, drawW, drawH);
+        }
+        ctx.restore();
+      } else if (spriteCanvas) {
+        ctx.save();
+        const baseH = (frame === frames.crouch || frame === frames.crouchShoot) ? 78 : 106;
+        const drawH = baseH;
+        const drawW = sw / sh * drawH;
+        const offsetX = (p.w - drawW) / 2 + ((frame === frames.shoot || frame === frames.crouchShoot) ? 12 : 0);
+        const offsetY = p.h - drawH + 2;
+        if (p.facing < 0) {
+          ctx.translate(p.x + p.w, p.y);
+          ctx.scale(-1, 1);
+          ctx.drawImage(spriteCanvas, sx, sy, sw, sh, -p.w + offsetX, offsetY, drawW, drawH);
+        } else {
+          ctx.drawImage(spriteCanvas, sx, sy, sw, sh, p.x + offsetX, p.y + offsetY, drawW, drawH);
+        }
+        ctx.restore();
+      } else {
+        ctx.fillStyle = "#e9f3fb";
+        ctx.fillRect(p.x + 8, p.y + 8, p.w - 16, p.h - 8);
+        ctx.fillStyle = "#111821";
+        ctx.fillRect(p.x + 10, p.y + 14, p.w - 20, 18);
+      }
+      ctx.restore();
+    }
+
+    function drawParticles() {
+      for (const p of gameState.particles) {
+        ctx.globalAlpha = Math.max(0, p.life * 2.4);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(p.x, p.y, 4, 4);
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    function drawOverlay(s) {
+      if (gameState.stageIndex === 2) {
+        ctx.fillStyle = "rgba(80,215,255,.12)";
+        ctx.fillRect(0, 0, W, H);
+        ctx.fillStyle = "#bdefff";
+        ctx.font = "700 18px Segoe UI";
+        ctx.fillText("LOW GRAVITY", 22, 38);
+      }
+
+      if (gameState.won || gameState.lost) {
+        ctx.fillStyle = "rgba(3,8,14,.72)";
+        ctx.fillRect(0, 0, W, H);
+        ctx.fillStyle = gameState.won ? "#71ef9b" : "#ff4b5c";
+        ctx.font = "800 46px Segoe UI";
+        ctx.textAlign = "center";
+        ctx.fillText(gameState.won ? "ESCAPE SUCCESS" : "MISSION FAILED", W / 2, H / 2 - 14);
+        ctx.fillStyle = "#dce9f8";
+        ctx.font = "500 20px Segoe UI";
+        ctx.fillText("Restart 버튼으로 다시 시작", W / 2, H / 2 + 28);
+        ctx.textAlign = "left";
+      }
+    }
+
+    function loop(t) {
+      const dt = Math.min(0.033, (t - lastTime) / 1000 || 0);
+      lastTime = t;
+      update(dt);
+      requestAnimationFrame(loop);
+    }
+
+    window.addEventListener("keydown", e => {
+      const k = e.key.toLowerCase();
+      if (["a", "d", "w", "s", " ", "k", "c", "e", "arrowleft", "arrowright", "arrowup", "arrowdown"].includes(k)) {
+        e.preventDefault();
+        keys.add(k);
+        if (gameState && (k === "a" || k === "arrowleft")) gameState.player.facing = -1;
+        if (gameState && (k === "d" || k === "arrowright")) gameState.player.facing = 1;
+      }
+    });
+
+    window.addEventListener("keyup", e => keys.delete(e.key.toLowerCase()));
+    ui.restart.addEventListener("click", initGame);
+    ui.mute.addEventListener("click", () => {
+      soundOn = !soundOn;
+      ui.mute.textContent = soundOn ? "Sound On" : "Sound Off";
+    });
+
+    initGame();
+    updateHud();
+    requestAnimationFrame(draw);
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>
